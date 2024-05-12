@@ -1,0 +1,23 @@
+{
+    "name": "freedomtech-hosting/ft-lagoon-php",
+    "description": "The Freedom Tech Lagoon PHP library",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "FreedomtechHosting\\FtLagoonPhp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Bryan Gruneberg",
+            "email": "hello@bryangruneberg.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "symfony/process": "^7.0",
+        "spatie/ssh": "^1.10",
+        "softonic/graphql-client": "^3.0"
+    }
+}
