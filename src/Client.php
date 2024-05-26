@@ -99,7 +99,7 @@ class Client {
         string $gitUrl,
         string $deployBranch,
         string $clusterId,
-        string $privateKey,
+//        string $privateKey,
         int $orgId,
         bool $addOrgOwnerToProject)
     {
@@ -118,7 +118,7 @@ class Client {
                     kubernetes: {$clusterId}
                     branches: \"{$deployBranch}\"
                     productionEnvironment: \"{$deployBranch}\"
-                    privateKey: \"{$privateKey}\"
+//                    privateKey: \"{$privateKey}\"
                     organization: {$orgId}
                     addOrgOwner:   {$addOrgOwner}
                 }
