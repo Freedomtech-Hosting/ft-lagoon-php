@@ -118,7 +118,6 @@ class Client {
                     kubernetes: {$clusterId}
                     branches: \"{$deployBranch}\"
                     productionEnvironment: \"{$deployBranch}\"
-//                    privateKey: \"{$privateKey}\"
                     organization: {$orgId}
                     addOrgOwner:   {$addOrgOwner}
                 }
