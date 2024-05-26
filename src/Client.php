@@ -2,6 +2,7 @@
 
 use Softonic\GraphQL\ClientBuilder;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\AuthTrait;
+use Softonic\GraphQL\Mutation;
 
 class Client {
     protected $config;
@@ -71,6 +72,55 @@ class Client {
                     branches: \"{$deployBranch}\"
                     productionEnvironment: \"{$deployBranch}\"
                     privateKey: \"{$privateKey}\"
+                }
+            ) {
+                id
+                name
+                gitUrl
+                branches
+                productionEnvironment
+            }
+        }";
+
+        $response = $this->graphqlClient->query($mutation);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+        else {
+            // Returns an array with all the data returned by the GraphQL server.
+            $data = $response->getData();
+            return $data;
+        }
+    }
+
+    public function createLagoonProjectInOrganization(
+        string $projectName,
+        string $gitUrl,
+        string $deployBranch,
+        string $clusterId,
+        string $privateKey,
+        int $orgId,
+        bool $addOrgOwnerToProject)
+    {
+
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $addOrgOwner = $addOrgOwnerToProject == true ? "true" : "false";
+
+        $mutation = "mutation {
+            addProject(
+                input: {
+                    name: \"{$projectName}\"
+                    gitUrl: \"{$gitUrl}\"
+                    kubernetes: {$clusterId}
+                    branches: \"{$deployBranch}\"
+                    productionEnvironment: \"{$deployBranch}\"
+                    privateKey: \"{$privateKey}\"
+                    organization: {$orgId}
+                    addOrgOwner:   {$addOrgOwner}
                 }
             ) {
                 id
