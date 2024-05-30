@@ -100,7 +100,7 @@ class Client {
         string $projectName,
         string $gitUrl,
         string $deployBranch,
-        string $clusterId,
+        int $clusterId,
 //        string $privateKey,
         int $orgId,
         bool $addOrgOwnerToProject)
