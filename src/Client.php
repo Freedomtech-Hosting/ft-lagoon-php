@@ -106,11 +106,32 @@ class Client {
         bool $addOrgOwnerToProject)
     {
 
+        $projectInput = [
+              'name' => $projectName,
+              'gitUrl' => $gitUrl,
+              'kubernetes' => $clusterId,
+              'branches' => $deployBranch,
+              'productionEnvironment' => $deployBranch,
+              'organization' => $orgId,
+              'addOrgOwner' => $addOrgOwnerToProject,
+        ];
+
+        return $this->addProjectMutation($projectInput);
+    }
+
+    /**
+     * Provides a generic runner for explicit addProject implementations
+     *
+     * @param array $addProjectInput
+     * @return array
+     * @throws LagoonClientInitializeRequiredToInteractException
+     */
+    protected function addProjectMutation(array $addProjectInput)
+    {
+
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
             throw new LagoonClientInitializeRequiredToInteractException();
         }
-
-        $addOrgOwner = $addOrgOwnerToProject == true ? "true" : "false";
 
         $mutation = 'mutation ($projectInput: AddProjectInput!) {
             addProject(input: $projectInput) {
@@ -123,15 +144,7 @@ class Client {
         }';
 
         $projectInput = [
-          'projectInput' => [
-              'name' => $projectName,
-              'gitUrl' => $gitUrl,
-              'kubernetes' => $clusterId,
-              'branches' => $deployBranch,
-              'productionEnvironment' => $deployBranch,
-              'organization' => $orgId,
-              'addOrgOwner' => $addOrgOwner,
-          ]
+            'projectInput' => $addProjectInput
         ];
 
         $response = $this->graphqlClient->query($mutation, $projectInput);
@@ -145,6 +158,7 @@ class Client {
             return $data;
         }
     }
+
 
     public function addOrUpdateGlobalVariableForProject(
         string $projectName,
