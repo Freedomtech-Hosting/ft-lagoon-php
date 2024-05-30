@@ -61,39 +61,16 @@ class Client {
         string $privateKey)
     {
 
-        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
-            throw new LagoonClientInitializeRequiredToInteractException();
-        }
+        $projectInput = [
+            'name' => $projectName,
+            'gitUrl' => $gitUrl,
+            'kubernetes' => $clusterId,
+            'branches' => $deployBranch,
+            'productionEnvironment' => $deployBranch,
+            'privateKey' => $privateKey,
+        ];
 
-        $mutation = "mutation {
-            addProject(
-                input: {
-                    name: \"{$projectName}\"
-                    gitUrl: \"{$gitUrl}\"
-                    kubernetes: {$clusterId}
-                    branches: \"{$deployBranch}\"
-                    productionEnvironment: \"{$deployBranch}\"
-                    privateKey: \"{$privateKey}\"
-                }
-            ) {
-                id
-                name
-                gitUrl
-                branches
-                productionEnvironment
-            }
-        }";
-
-        $response = $this->graphqlClient->query($mutation);
-
-        if($response->hasErrors()) {
-            return ['error' => $response->getErrors()];
-        }
-        else {
-            // Returns an array with all the data returned by the GraphQL server.
-            $data = $response->getData();
-            return $data;
-        }
+        return $this->addProjectMutation($projectInput);
     }
 
     public function createLagoonProjectInOrganization(
