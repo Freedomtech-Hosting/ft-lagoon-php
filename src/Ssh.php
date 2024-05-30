@@ -11,15 +11,24 @@ class Ssh extends SpatieSsh {
      **/
     public function executeLagoonGetToken(): string
     {
-        $extraOptions = implode(' ', $this->getExtraOptions());
-        $target = $this->getTargetForSsh();
-
-        $sshCommand = "ssh {$extraOptions} {$target} token";
+        $sshCommand = $this->getTokenCommand();
 
         $process = $this->run($sshCommand);
 
 	    $token = $process->getOutput();
 	
         return ltrim(rtrim($token));
+    }
+
+    /**
+     * @return string
+     */
+    public function getTokenCommand(): string
+    {
+        $extraOptions = implode(' ', $this->getExtraOptions());
+        $target = $this->getTargetForSsh();
+
+        $sshCommand = "ssh {$extraOptions} {$target} token";
+        return $sshCommand;
     }
 }

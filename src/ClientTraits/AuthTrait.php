@@ -18,7 +18,9 @@ Trait AuthTrait {
             ->removeBash()
             ->enableQuietMode();
 
-        if($debug) { return $ssh->getExecuteCommand(); }
+        if($debug) {
+            return $ssh->getTokenCommand();
+        }
 
         $token = $ssh->executeLagoonGetToken();
         $this->setLagoonToken($token);
