@@ -6,6 +6,8 @@ use Softonic\GraphQL\Mutation;
 
 class Client {
     protected $config;
+
+    /** @var \Softonic\GraphQL\Client */
     protected $graphqlClient;
     protected $sshPrivateKeyFile;
     protected $lagoonSshUser;
@@ -110,27 +112,37 @@ class Client {
 
         $addOrgOwner = $addOrgOwnerToProject == true ? "true" : "false";
 
-        $mutation = "mutation {
-            addProject(
-                input: {
-                    name: \"{$projectName}\"
-                    gitUrl: \"{$gitUrl}\"
-                    kubernetes: {$clusterId}
-                    branches: \"{$deployBranch}\"
-                    productionEnvironment: \"{$deployBranch}\"
-                    organization: {$orgId}
-                    addOrgOwner:   {$addOrgOwner}
-                }
-            ) {
+//        name: \"{$projectName}\"
+//                    gitUrl: \"{$gitUrl}\"
+//                    kubernetes: {$clusterId}
+//                    branches: \"{$deployBranch}\"
+//                    productionEnvironment: \"{$deployBranch}\"
+//                    organization: {$orgId}
+//                    addOrgOwner:   {$addOrgOwner}
+
+        $mutation = 'mutation ($projectInput: AddProjectInput!) {
+            addProject(input: $projectInput) {
                 id
                 name
                 gitUrl
                 branches
                 productionEnvironment
             }
-        }";
+        }';
 
-        $response = $this->graphqlClient->query($mutation);
+        $projectInput = [
+          'projectInput' => [
+              'name' => $projectName,
+              'gitUrl' => $gitUrl,
+              'kubernetes' => $clusterId,
+              'branches' => $deployBranch,
+              'productionEnvironment' => $deployBranch,
+              'organization' => $orgId,
+              'addOrgOwner' => $addOrgOwner,
+          ]
+        ];
+
+        $response = $this->graphqlClient->query($mutation, $projectInput);
 
         if($response->hasErrors()) {
             return ['error' => $response->getErrors()];
