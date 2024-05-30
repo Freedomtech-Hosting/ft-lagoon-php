@@ -112,14 +112,6 @@ class Client {
 
         $addOrgOwner = $addOrgOwnerToProject == true ? "true" : "false";
 
-//        name: \"{$projectName}\"
-//                    gitUrl: \"{$gitUrl}\"
-//                    kubernetes: {$clusterId}
-//                    branches: \"{$deployBranch}\"
-//                    productionEnvironment: \"{$deployBranch}\"
-//                    organization: {$orgId}
-//                    addOrgOwner:   {$addOrgOwner}
-
         $mutation = 'mutation ($projectInput: AddProjectInput!) {
             addProject(input: $projectInput) {
                 id
