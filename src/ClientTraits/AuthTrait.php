@@ -5,7 +5,7 @@ use FreedomtechHosting\FtLagoonPhp\LagoonClientInitializeRequiredToInteractExcep
 use FreedomtechHosting\FtLagoonPhp\LagoonClientTokenRequiredToInitializeException;
 
 Trait AuthTrait {
-    public function getLagoonTokenOverSSH($refresh = false)
+    public function getLagoonTokenOverSSH($refresh = false, $debug = false)
     {
         if($this->lagoonToken && !$refresh) {
             return $this->lagoonToken;
@@ -17,6 +17,8 @@ Trait AuthTrait {
             ->disableStrictHostKeyChecking()
             ->removeBash()
             ->enableQuietMode();
+
+        if($debug) { return $ssh->getExecuteCommand(); }
 
         $token = $ssh->executeLagoonGetToken();
         $this->setLagoonToken($token);
