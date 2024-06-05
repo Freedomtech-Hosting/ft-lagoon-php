@@ -16,7 +16,7 @@ Trait AuthTrait {
             ->usePrivateKey($this->sshPrivateKeyFile)
             ->disableStrictHostKeyChecking()
             ->removeBash()
-            ->enableQuietMode()->addExtraOption("IdentityAgent=none");
+            ->enableQuietMode()->addExtraOption("-o IdentityAgent=none");
 
         if($debug) {
             return $ssh->getTokenCommand();
