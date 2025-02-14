@@ -2,21 +2,26 @@
 
 use FreedomtechHosting\FtLagoonPhp\Ssh;
 use FreedomtechHosting\FtLagoonPhp\LagoonClientInitializeRequiredToInteractException;
-use FreedomtechHosting\FtLagoonPhp\LagoonClientTokenRequiredToInitializeException;
 
+/**
+ * Trait AuthTrait
+ * 
+ * Provides authentication and API interaction methods for the Lagoon API client.
+ */
 Trait AuthTrait {
+    /**
+     * Gets a Lagoon API token via SSH connection
+     *
+     * @param bool $refresh Whether to force refresh the token even if one exists
+     * @return string The Lagoon API token
+     */
     public function getLagoonTokenOverSSH($refresh = false)
     {
         if($this->lagoonToken && !$refresh) {
             return $this->lagoonToken;
         }
 
-        $ssh = Ssh::create($this->lagoonSshUser, $this->lagoonSshServer)
-            ->usePort($this->lagoonSshPort)
-            ->usePrivateKey($this->sshPrivateKeyFile)
-            ->disableStrictHostKeyChecking()
-            ->removeBash()
-            ->enableQuietMode();
+        $ssh = Ssh::createLagoonConfigured($this->lagoonSshUser, $this->lagoonSshServer, $this->lagoonSshPort, $this->sshPrivateKeyFile);
 
         $token = $ssh->executeLagoonGetToken();
         $this->setLagoonToken($token);
@@ -24,6 +29,12 @@ Trait AuthTrait {
         return $token;
     }
     
+    /**
+     * Pings the Lagoon API to verify connectivity and authentication
+     *
+     * @throws LagoonClientInitializeRequiredToInteractException If client is not properly initialized
+     * @return bool True if connection is successful, false otherwise
+     */
     public function pingLagoonAPI() : bool
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
@@ -56,7 +67,12 @@ Trait AuthTrait {
         return true;
     }
 
-
+    /**
+     * Retrieves information about the currently authenticated user
+     *
+     * @throws LagoonClientInitializeRequiredToInteractException If client is not properly initialized
+     * @return array User information including ID and email
+     */
     public function whoAmI() : array
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
