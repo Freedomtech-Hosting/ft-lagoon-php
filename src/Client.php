@@ -4,6 +4,17 @@ use Softonic\GraphQL\ClientBuilder;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\AuthTrait;
 use Softonic\GraphQL\Mutation;
 
+/**
+ * Client class for interacting with the Lagoon API
+ * 
+ * This class provides methods to interact with Lagoon's GraphQL API, handling operations like:
+ * - Project management (creation, deletion, deployment)
+ * - Environment management
+ * - Variable management
+ * - Authentication
+ *
+ * It requires SSH key authentication and manages the GraphQL client connection.
+ */
 class Client {
     protected $config;
 
@@ -18,6 +29,19 @@ class Client {
 
     use AuthTrait;
 
+    /**
+     * Constructor for the Lagoon API client
+     *
+     * Initializes the client with configuration settings for SSH and API connectivity.
+     * Uses default values for most settings if not explicitly provided.
+     *
+     * @param array $config Configuration array with optional keys:
+     *                      - ssh_user: SSH username (default: 'lagoon')
+     *                      - ssh_server: SSH server hostname (default: 'ssh.lagoon.amazeeio.cloud')
+     *                      - ssh_port: SSH port (default: '32222')
+     *                      - endpoint: API endpoint URL (default: 'https://api.lagoon.amazeeio.cloud/graphql')
+     *                      - ssh_private_key_file: Path to SSH private key (default: '~/.ssh/id_rsa')
+     */
     public function __construct(array $config = [])
     {
         $this->config = $config;
@@ -29,6 +53,11 @@ class Client {
         $this->sshPrivateKeyFile = $config['ssh_private_key_file'] ?? '~/.ssh/id_rsa';
     }
 
+    /**
+     * Initializes the GraphQL client with authentication token
+     *
+     * @throws LagoonClientTokenRequiredToInitializeException if no token is set
+     */
     public function initGraphqlClient()
     {
         if(empty($this->lagoonToken)) {
@@ -42,17 +71,36 @@ class Client {
         ]);
     }
 
+    /**
+     * Sets the Lagoon authentication token
+     *
+     * @param string $token The authentication token
+     */
     public function setLagoonToken($token)
     {
         $this->lagoonToken = $token;
     }
 
+    /**
+     * Gets the current Lagoon authentication token
+     *
+     * @return string|null The current token or null if not set
+     */
     public function getLagoonToken()
     {
         return $this->lagoonToken;
     }
 
-
+    /**
+     * Creates a new Lagoon project
+     *
+     * @param string $projectName The name of the project
+     * @param string $gitUrl The Git repository URL
+     * @param string $deployBranch The branch to deploy
+     * @param string $clusterId The Kubernetes cluster ID
+     * @param string $privateKey The private key for Git access
+     * @return array Response from the API
+     */
     public function createLagoonProject(
         string $projectName,
         string $gitUrl,
@@ -73,12 +121,23 @@ class Client {
         return $this->addProjectMutation($projectInput);
     }
 
+    /**
+     * Creates a new Lagoon project within an organization
+     *
+     * @param string $projectName The name of the project
+     * @param string $gitUrl The Git repository URL
+     * @param string $deployBranch The branch to deploy
+     * @param int $clusterId The Kubernetes cluster ID
+     * @param int $orgId The organization ID
+     * @param bool $addOrgOwnerToProject Whether to add organization owner to project
+     * @return array Response from the API
+     */
     public function createLagoonProjectInOrganization(
         string $projectName,
         string $gitUrl,
         string $deployBranch,
         int $clusterId,
-//        string $privateKey,
+        string $privateKey,
         int $orgId,
         bool $addOrgOwnerToProject)
     {
@@ -91,6 +150,7 @@ class Client {
               'productionEnvironment' => $deployBranch,
               'organization' => $orgId,
               'addOrgOwner' => $addOrgOwnerToProject,
+              'privateKey' => $privateKey,
         ];
 
         return $this->addProjectMutation($projectInput);
@@ -99,9 +159,9 @@ class Client {
     /**
      * Provides a generic runner for explicit addProject implementations
      *
-     * @param array $addProjectInput
-     * @return array
-     * @throws LagoonClientInitializeRequiredToInteractException
+     * @param array $addProjectInput Project configuration array
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
      */
     protected function addProjectMutation(array $addProjectInput)
     {
@@ -110,15 +170,17 @@ class Client {
             throw new LagoonClientInitializeRequiredToInteractException();
         }
 
-        $mutation = 'mutation ($projectInput: AddProjectInput!) {
-            addProject(input: $projectInput) {
-                id
-                name
-                gitUrl
-                branches
-                productionEnvironment
+        $mutation = <<<GQL
+            mutation (\$projectInput: AddProjectInput!) {
+                addProject(input: \$projectInput) {
+                    id
+                    name
+                    gitUrl
+                    branches
+                    productionEnvironment
+                }
             }
-        }';
+        GQL;
 
         $projectInput = [
             'projectInput' => $addProjectInput
@@ -136,7 +198,15 @@ class Client {
         }
     }
 
-
+    /**
+     * Adds or updates a global variable for a project
+     *
+     * @param string $projectName The name of the project
+     * @param string $key The variable key/name
+     * @param string $value The variable value
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
     public function addOrUpdateGlobalVariableForProject(
         string $projectName,
         string $key,
@@ -147,21 +217,21 @@ class Client {
             throw new LagoonClientInitializeRequiredToInteractException();
         }
 
-        $mutation = "
-        mutation m {
-            addOrUpdateEnvVariableByName(input: {
-                project: \"{$projectName}\"
-                name: \"{$key}\"
-                scope: GLOBAL
-                value: \"{$value}\"
-            }) {
-              id
-              name
-              value
-              scope
+        $mutation = <<<GQL
+            mutation m {
+                addOrUpdateEnvVariableByName(input: {
+                    project: "{$projectName}"
+                    name: "{$key}"
+                    scope: GLOBAL
+                    value: "{$value}"
+                }) {
+                    id
+                    name
+                    value
+                    scope
+                }
             }
-          }
-        ";
+        GQL;
 
         $response = $this->graphqlClient->query($mutation);
 
@@ -175,18 +245,38 @@ class Client {
         }
     }
 
+    /**
+     * Checks if a project exists by name
+     *
+     * @param string $projectName The name of the project to check
+     * @return bool True if project exists, false otherwise
+     */
     public function projectExistsByName(string $projectName) : bool
     {
         $data = $this->getProjectByName($projectName);
         return(isset($data['projectByName']['id']));
     }
 
+    /**
+     * Checks if a project environment exists by name
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment
+     * @return bool True if environment exists, false otherwise
+     */
     public function projectEnvironmentExistsByName(string $projectName, $environmentName) : bool
     {
         $data = $this->getProjectEnvironmentsByName($projectName);
         return(isset($data[$environmentName]));
     }
 
+    /**
+     * Gets a specific project environment by name
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment
+     * @return array Environment data or empty array if not found
+     */
     public function getProjectEnvironmentByName(string $projectName, $environmentName) : array
     {
         $data = $this->getProjectEnvironmentsByName($projectName);
@@ -194,6 +284,12 @@ class Client {
         return($data[$environmentName] ?? []);
     }
 
+    /**
+     * Gets all environments for a project
+     *
+     * @param string $projectName The name of the project
+     * @return array Associative array of environments keyed by name
+     */
     public function getProjectEnvironmentsByName(string $projectName) : array
     {
         $data = $this->getProjectByName($projectName);
@@ -207,6 +303,12 @@ class Client {
         return($retenvs);
     }
 
+    /**
+     * Gets all variables for a project
+     *
+     * @param string $projectName The name of the project
+     * @return array Associative array of variables with their values and scopes
+     */
     public function getProjectVariablesByName(string $projectName) : array
     {
         $data = $this->getProjectByName($projectName);
@@ -223,6 +325,13 @@ class Client {
         return $retvars;
     }
 
+    /**
+     * Gets detailed information about a project
+     *
+     * @param string $projectName The name of the project
+     * @return array Project data including environments, variables, and metadata
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
     public function getProjectByName(string $projectName) : array
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
@@ -232,43 +341,44 @@ class Client {
         /**
          * Query Example
          */
-        $query = "
-          query q {
-            projectByName(name: \"$projectName\") {
-                id
-                name
-                productionEnvironment
-                branches
-                gitUrl
-                openshift {
-                  id
-                  name
-                  cloudProvider
-                  cloudRegion
-                }
-                created
-                metadata
-                envVariables {
-                  id
-                  name
-                  value
-                  scope
-                }
-                publicKey
-                privateKey
-                availability
-                environments {
+        $query = <<<GQL
+            query q {
+                projectByName(name: "{$projectName}") {
                     id
                     name
+                    productionEnvironment
+                    branches
+                    gitUrl
+                    openshift {
+                        id
+                        name
+                        cloudProvider
+                        cloudRegion
+                    }
                     created
-                    updated
-                    deleted
-                    environmentType
-                    route
-                    routes
+                    metadata
+                    envVariables {
+                        id
+                        name
+                        value
+                        scope
+                    }
+                    publicKey
+                    privateKey
+                    availability
+                    environments {
+                        id
+                        name
+                        created
+                        updated
+                        deleted
+                        environmentType
+                        route
+                        routes
+                    }
                 }
-              }
-          }";
+            }
+        GQL;
 
         $response = $this->graphqlClient->query($query);
 
@@ -284,6 +394,14 @@ class Client {
         return true;
     }
 
+    /**
+     * Triggers a deployment for a project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $deployBranch The branch to deploy
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
     public function deployProjectEnvironmentByName(
         string $projectName,
         string $deployBranch,
@@ -293,15 +411,15 @@ class Client {
             throw new LagoonClientInitializeRequiredToInteractException();
         }
 
-        $mutation = "
-        mutation m {
-            deployEnvironmentBranch(input: {
-                project: {name: \"{$projectName}\"}
-                branchName: \"{$deployBranch}\"
-                returnData: true
-            })
-        }
-        ";
+        $mutation = <<<GQL
+            mutation m {
+                deployEnvironmentBranch(input: {
+                    project: {name: "{$projectName}"}
+                    branchName: "{$deployBranch}"
+                    returnData: true
+                })
+            }
+        GQL;
 
         $response = $this->graphqlClient->query($mutation);
 
@@ -315,6 +433,15 @@ class Client {
         }
     }
 
+    /**
+     * Gets deployment information for a specific deployment
+     *
+     * @param string $projectId The project ID
+     * @param string $environmentName The environment name
+     * @param string $deploymentName The deployment name
+     * @return array Deployment information or error details
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
     public function getProjectDeploymentByProjectIdDeploymentName(string $projectId, string $environmentName, string $deploymentName)  : array
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
@@ -324,20 +451,21 @@ class Client {
         /**
          * Query Example
          */
-        $query = "
-        query q {
-            environmentByName(project: {$projectId}, name: \"{$environmentName}\") {
-              deployments(name: \"{$deploymentName}\") {
-                id
-                remoteId
-                name
-                status
-                created
-                started
-                completed
-              }
+        $query = <<<GQL
+            query q {
+                environmentByName(project: {$projectId}, name: "{$environmentName}") {
+                    deployments(name: "{$deploymentName}") {
+                        id
+                        remoteId
+                        name
+                        status
+                        created
+                        started
+                        completed
+                    }
+                }
             }
-          }";
+        GQL;
 
         $response = $this->graphqlClient->query($query);
 
@@ -357,6 +485,14 @@ class Client {
         return true;
     }
 
+    /**
+     * Deletes a project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment to delete
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
     public function deleteProjectEnvironmentByName(
         string $projectName,
         string $environmentName,
@@ -366,16 +502,15 @@ class Client {
             throw new LagoonClientInitializeRequiredToInteractException();
         }
 
-        $mutation = "
-        mutation m {
-            deleteEnvironment(input: {
-                    project: \"{$projectName}\",
-                    name: \"{$environmentName}\",
+        $mutation = <<<GQL
+            mutation m {
+                deleteEnvironment(input: {
+                    project: "{$projectName}",
+                    name: "{$environmentName}",
                     execute: true
-                }
-            )
-          }
-        ";
+                })
+            }
+        GQL;
 
         $response = $this->graphqlClient->query($mutation);
 
@@ -389,4 +524,3 @@ class Client {
         }
     }
 }
-
