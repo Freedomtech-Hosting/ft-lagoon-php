@@ -2,8 +2,12 @@
 
 use FreedomtechHosting\FtLagoonPhp\Ssh;
 use FreedomtechHosting\FtLagoonPhp\LagoonClientInitializeRequiredToInteractException;
-use FreedomtechHosting\FtLagoonPhp\LagoonClientTokenRequiredToInitializeException;
 
+/**
+ * Trait AuthTrait
+ * 
+ * Provides authentication and API interaction methods for the Lagoon API client.
+ */
 Trait AuthTrait {
     public function getLagoonTokenOverSSH($refresh = false, $debug = false)
     {
@@ -11,15 +15,10 @@ Trait AuthTrait {
             return $this->lagoonToken;
         }
 
-        $ssh = Ssh::create($this->lagoonSshUser, $this->lagoonSshServer)
-            ->usePort($this->lagoonSshPort)
-            ->usePrivateKey($this->sshPrivateKeyFile)
-            ->disableStrictHostKeyChecking()
-            ->removeBash()
-            ->enableQuietMode()->addExtraOption("-o IdentityAgent=none");
+        $ssh = Ssh::createLagoonConfigured($this->lagoonSshUser, $this->lagoonSshServer, $this->lagoonSshPort, $this->sshPrivateKeyFile);
 
         if($debug) {
-            return $ssh->getTokenCommand();
+            echo $ssh->getTokenCommand();
         }
 
         $token = $ssh->executeLagoonGetToken();
@@ -28,6 +27,12 @@ Trait AuthTrait {
         return $token;
     }
     
+    /**
+     * Pings the Lagoon API to verify connectivity and authentication
+     *
+     * @throws LagoonClientInitializeRequiredToInteractException If client is not properly initialized
+     * @return bool True if connection is successful, false otherwise
+     */
     public function pingLagoonAPI() : bool
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
@@ -60,7 +65,12 @@ Trait AuthTrait {
         return true;
     }
 
-
+    /**
+     * Retrieves information about the currently authenticated user
+     *
+     * @throws LagoonClientInitializeRequiredToInteractException If client is not properly initialized
+     * @return array User information including ID and email
+     */
     public function whoAmI() : array
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
