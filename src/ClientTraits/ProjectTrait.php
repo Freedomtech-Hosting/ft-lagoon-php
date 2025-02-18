@@ -111,7 +111,6 @@ Trait ProjectTrait {
         }
     }
 
-
     /**
      * Checks if a project exists by name
      *
