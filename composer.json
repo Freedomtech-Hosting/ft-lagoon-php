@@ -16,7 +16,7 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "symfony/process": "^7.0",
+        "symfony/process": "^7.1.7",
         "spatie/ssh": "^1.10",
         "softonic/graphql-client": "^3.0"
     }
