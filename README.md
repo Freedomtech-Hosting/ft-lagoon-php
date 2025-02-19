@@ -1,5 +1,11 @@
 # FT Lagoon PHP Client
 
+> **⚠️ Warning: Experimental Project**  
+> FT-Lagoon-PHP is currently in active development and has not yet reached a stable production release. This project should be considered experimental.
+>
+> If you are interested in using FT-Lagoon-PHP in a production setting, please contact Bryan Gruneberg (bryan@workshoporange.co) from [Workshop Orange](https://www.workshoporange.co), one of the sponsoring organizations.
+
+
 A PHP client library for interacting with the Lagoon API.
 
 ## Requirements
@@ -54,6 +60,12 @@ Table of supported API functions:
 ## Examples
 For examples of how to use the client, see the demo implementation at https://github.com/Freedomtech-Hosting/ft-lagoon-php-cli
 
+
+## Sponsoring Organizations
+
+- [Workshop Orange](https://www.workshoporange.co) - Project Delivery Professionals
+- [amazee.io](https://www.amazee.io) - Enterprise Hosting  
+- [Freedomtech Hosting](https://www.freedomtech.hosting) - Decentralized Hosting
 
 ## Contributing
 Contributions are welcome! Please feel free to submit an issue or a PR.
