@@ -52,3 +52,11 @@ Table of supported API functions:
 | `deleteProjectEnvironmentByName` | Delete a project environment |
 
 ## Examples
+For examples of how to use the client, see the demo implementation at https://github.com/Freedomtech-Hosting/ft-lagoon-php-cli
+
+
+## Contributing
+Contributions are welcome! Please feel free to submit an issue or a PR.
+
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
