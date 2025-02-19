@@ -1,6 +1,7 @@
 <?php namespace FreedomtechHosting\FtLagoonPhp\ClientTraits;
 
 use FreedomtechHosting\FtLagoonPhp\LagoonClientInitializeRequiredToInteractException;
+use FreedomtechHosting\FtLagoonPhp\LagoonVariableScopeInvalidException;
 
 Trait ProjectTrait {
 
@@ -9,28 +10,30 @@ Trait ProjectTrait {
      *
      * @param string $projectName The name of the project
      * @param string $gitUrl The Git repository URL
-     * @param string $deployBranch The branch to deploy
-     * @param string $clusterId The Kubernetes cluster ID
-     * @param string $privateKey The private key for Git access
+     * @param string $branches The branches to deploy
+     * @param string $productionEnvironment The production environment
+     * @param int $clusterId The Kubernetes cluster ID
+     * @param string|null $privateKey The private key for Git access
      * @return array Response from the API
      */
     public function createLagoonProject(
         string $projectName,
         string $gitUrl,
-        string $deployBranch,
-        string $clusterId,
-        string $privateKey)
+        string $branches,
+        string $productionEnvironment,
+        int $clusterId,
+        ?string $privateKey = null)
     {
 
         $projectInput = [
             'name' => $projectName,
             'gitUrl' => $gitUrl,
             'kubernetes' => $clusterId,
-            'branches' => $deployBranch,
-            'productionEnvironment' => $deployBranch,
-            'privateKey' => $privateKey,
-        ];
+            'branches' => $branches,
+            'productionEnvironment' => $productionEnvironment,
+        ] + (!empty($privateKey) ? ['privateKey' => $privateKey] : []);
 
+        
         return $this->addProjectMutation($projectInput);
     }
 
@@ -39,8 +42,10 @@ Trait ProjectTrait {
      *
      * @param string $projectName The name of the project
      * @param string $gitUrl The Git repository URL
-     * @param string $deployBranch The branch to deploy
+     * @param string $branches The branches to deploy
+     * @param string $productionEnvironment The production environment
      * @param int $clusterId The Kubernetes cluster ID
+     * @param string|null $privateKey The private key for Git access
      * @param int $orgId The organization ID
      * @param bool $addOrgOwnerToProject Whether to add organization owner to project
      * @return array Response from the API
@@ -48,9 +53,10 @@ Trait ProjectTrait {
     public function createLagoonProjectInOrganization(
         string $projectName,
         string $gitUrl,
-        string $deployBranch,
+        string $branches,
+        string $productionEnvironment,
         int $clusterId,
-        string $privateKey,
+        ?string $privateKey = null,
         int $orgId,
         bool $addOrgOwnerToProject)
     {
@@ -59,12 +65,15 @@ Trait ProjectTrait {
               'name' => $projectName,
               'gitUrl' => $gitUrl,
               'kubernetes' => $clusterId,
-              'branches' => $deployBranch,
-              'productionEnvironment' => $deployBranch,
+              'branches' => $branches,
+              'productionEnvironment' => $productionEnvironment,
               'organization' => $orgId,
               'addOrgOwner' => $addOrgOwnerToProject,
-              'privateKey' => $privateKey,
         ];
+
+        if (!empty($privateKey)) {
+            $projectInput['privateKey'] = $privateKey;
+        }
 
         return $this->addProjectMutation($projectInput);
     }
@@ -173,6 +182,12 @@ Trait ProjectTrait {
                         environmentType
                         route
                         routes
+                        envVariables {
+                          id
+                          name
+                          value
+                          scope
+                        }
                     }
                 }
             }
@@ -215,31 +230,57 @@ Trait ProjectTrait {
     }
 
     /**
-     * Adds or updates a global variable for a project
+     * Gets a specific variable for a project by variable name
+     *
+     * @param string $projectName The name of the project
+     * @param string $variableName The name of the variable to retrieve
+     * @return array Variable data including value and scope, or empty array if not found
+     */
+    public function getProjectVariableByName(string $projectName, string $variableName) : array
+    {
+        $variables = $this->getProjectVariablesByName($projectName);
+        return $variables[$variableName] ?? [];
+    }
+
+    /**
+     * Adds or updates a variable with a specific scope for a project
      *
      * @param string $projectName The name of the project
      * @param string $key The variable key/name
      * @param string $value The variable value
+     * @param string $scope The scope of the variable (GLOBAL, RUNTIME, BUILD, CONTAINER_REGISTRY)
+     * @param string|null $environment Optional environment name
      * @return array Response from the API
      * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     * @throws LagoonVariableScopeInvalid if scope is invalid
      */
-    public function addOrUpdateGlobalVariableForProject(
+    public function addOrUpdateScopedVariableForProject(
         string $projectName,
         string $key,
-        string $value
+        string $value,
+        string $scope,
+        ?string $environment = null
     )
     {
         if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
             throw new LagoonClientInitializeRequiredToInteractException();
         }
 
+        $validScopes = ['RUNTIME', 'BUILD', 'CONTAINER_REGISTRY', 'GLOBAL'];
+        if (!in_array($scope, $validScopes)) {
+            throw new LagoonVariableScopeInvalidException();
+        }
+
+        $environmentArg = !empty($environment) ? "environment: \"{$environment}\"," : "";
+
         $mutation = <<<GQL
             mutation m {
                 addOrUpdateEnvVariableByName(input: {
                     project: "{$projectName}"
                     name: "{$key}"
-                    scope: GLOBAL
+                    scope: {$scope}
                     value: "{$value}"
+                    {$environmentArg}
                 }) {
                     id
                     name
@@ -261,4 +302,127 @@ Trait ProjectTrait {
         }
     }
 
+    /**
+     * Adds or updates a global variable for a project
+     *
+     * @param string $projectName The name of the project
+     * @param string $key The variable key/name
+     * @param string $value The variable value
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
+    public function addOrUpdateGlobalVariableForProject(
+        string $projectName,
+        string $key,
+        string $value
+    )
+    {
+        return $this->addOrUpdateScopedVariableForProject($projectName, $key, $value, 'GLOBAL');
+    }
+
+    /**
+     * Gets all projects from the API
+     *
+     * @return array Array of all projects and their details
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
+    public function getAllProjects() : array
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $query = <<<GQL
+            query q {
+                allProjects {
+                    id
+                    name
+                    productionEnvironment
+                    branches
+                    gitUrl
+                    openshift {
+                        id
+                        name
+                        cloudProvider
+                        cloudRegion
+                    }
+                    created
+                    availability
+                    environments {
+                        id
+                        name
+                        created
+                        updated
+                        deleted
+                        environmentType
+                        route
+                        routes
+                    }
+                }
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($query);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+        else {
+            $data = $response->getData();
+            return $data;
+        }
+    }
+
+    /**
+     * Deletes a variable from a project or project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $variableName The name of the variable to delete
+     * @param string|null $environment Optional environment name
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
+    public function deleteProjectVariableByName(
+        string $projectName,
+        string $variableName,
+        ?string $environment = null
+    )
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $input = [
+            'project' => $projectName,
+            'name' => $variableName
+        ];
+
+        if (!empty($environment)) {
+            $input['environment'] = $environment;
+        }
+
+        $environmentArg = !empty($environment) ? "environment: \"{$environment}\"," : "";
+
+        $mutation = <<<GQL
+            mutation m {
+                deleteEnvVariableByName(input: {
+                    project: "{$projectName}",
+                    name: "{$variableName}"
+                    {$environmentArg}
+                })
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($mutation);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+        else {
+            // Returns an array with all the data returned by the GraphQL server.
+            $data = $response->getData();
+            return $data;
+        }
+    }
+    
 }

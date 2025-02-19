@@ -178,5 +178,99 @@ Trait ProjectEnvironmentTrait {
             return $data;
         }
     }
+
+    /**
+     * Adds or updates a variable with a specific scope for a project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment
+     * @param string $key The variable key/name
+     * @param string $value The variable value
+     * @param string $scope The scope of the variable (GLOBAL, RUNTIME, BUILD, CONTAINER_REGISTRY)
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     * @throws LagoonVariableScopeInvalidException if scope is invalid
+     */
+    public function addOrUpdateScopedVariableForProjectEnvironment(
+        string $projectName,
+        string $environmentName,
+        string $key,
+        string $value,
+        string $scope
+    )
+    {
+        return $this->addOrUpdateScopedVariableForProject(
+            $projectName,
+            $key,
+            $value,
+            $scope,
+            $environmentName
+        );
+    }
+
+    /**
+     * Gets all variables for a specific project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment
+     * @return array Associative array of variables with their values and scopes
+     */
+    public function getProjectVariablesByNameForEnvironment(string $projectName, string $environmentName) : array
+    {
+        $data = $this->getProjectByName($projectName);
+        $environments = $data['projectByName']['environments'] ?? [];
+        $retvars = [];
+
+        foreach ($environments as $environment) {
+            if ($environment['name'] === $environmentName) {
+                $lagoonVars = $environment['envVariables'] ?? [];
+                foreach ($lagoonVars as $lagoonVar) {
+                    $retvars[$lagoonVar['name']] = [
+                        'value' => $lagoonVar['value'],
+                        'scope' => $lagoonVar['scope']
+                    ];
+                }
+                break;
+            }
+        }
+
+        return $retvars;
+    }
+
+    /**
+     * Gets a specific variable for a specific project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment
+     * @param string $variableName The name of the variable to retrieve
+     * @return array Variable data including value and scope, or empty array if not found
+     */
+    public function getProjectVariableByNameForEnvironment(string $projectName, string $environmentName, string $variableName) : array
+    {
+        $variables = $this->getProjectVariablesByNameForEnvironment($projectName, $environmentName);
+        return $variables[$variableName] ?? [];
+    }
+
+    /**
+     * Deletes a variable from a project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $variableName The name of the variable to delete
+     * @param string $environmentName The name of the environment
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
+    public function deleteProjectVariableByNameForEnvironment(
+        string $projectName,
+        string $variableName,
+        string $environmentName
+        )
+    {
+        return $this->deleteProjectVariableByName(
+            $projectName,
+            $variableName,
+            $environmentName
+        );
+    }
 }
 
