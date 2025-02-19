@@ -51,7 +51,11 @@ class Client {
         $this->lagoonSshServer = $config['ssh_server'] ?? 'ssh.lagoon.amazeeio.cloud';
         $this->lagoonSshPort = $config['ssh_port'] ?? '32222';
         $this->lagoonApiEndpoint = $config['endpoint'] ?? 'https://api.lagoon.amazeeio.cloud/graphql';
-        $this->sshPrivateKeyFile = $config['ssh_private_key_file'] ?? '~/.ssh/id_rsa';
+        $this->sshPrivateKeyFile = $config['ssh_private_key_file'] ?? getenv('HOME') . '/.ssh/id_rsa';
+
+        if (!file_exists($this->sshPrivateKeyFile)) {
+            throw new LagoonClientPrivateKeyNotFoundException($this->sshPrivateKeyFile);
+        }
     }
 
     /**
