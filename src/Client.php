@@ -29,6 +29,8 @@ class Client {
     protected $lagoonToken;
     protected $lagoonApiEndpoint;
 
+    protected $debug = false;
+
     use AuthTrait;
     use ProjectTrait;
     use ProjectEnvironmentTrait;
@@ -56,10 +58,36 @@ class Client {
         $this->lagoonSshPort = $config['ssh_port'] ?? '32222';
         $this->lagoonApiEndpoint = $config['endpoint'] ?? 'https://api.lagoon.amazeeio.cloud/graphql';
         $this->sshPrivateKeyFile = $config['ssh_private_key_file'] ?? getenv('HOME') . '/.ssh/id_rsa';
+        
+        if(! isset($config['debug'])) {
+            $this->debug = false;
+        } else {
+            $this->debug = $config['debug'];
+        }
 
         if (!file_exists($this->sshPrivateKeyFile)) {
             throw new LagoonClientPrivateKeyNotFoundException($this->sshPrivateKeyFile);
         }
+    }
+
+    /**
+     * Set the debug mode
+     *
+     * @param bool $debug True to enable debug, false to disable
+     */
+    public function setDebug($debug)
+    {
+        $this->debug = (bool) $debug;
+    }
+
+    /**
+     * Get the debug mode
+     *
+     * @return bool True if debug is enabled, false otherwise
+     */
+    public function getDebug() : bool
+    {
+        return $this->debug;
     }
 
     /**
