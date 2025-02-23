@@ -424,5 +424,41 @@ Trait ProjectTrait {
             return $data;
         }
     }
+ 
+     /**
+     * Deletes a project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment to delete
+     * @return array Response from the API
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
+    public function deleteProjectByName(
+        string $projectName,
+    )
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $mutation = <<<GQL
+            mutation m {
+                deleteProject(input: {
+                    project: "{$projectName}",
+                })
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($mutation);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+        else {
+            // Returns an array with all the data returned by the GraphQL server.
+            $data = $response->getData();
+            return $data;
+        }
+    }
     
 }

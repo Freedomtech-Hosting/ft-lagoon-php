@@ -4,6 +4,8 @@ use Softonic\GraphQL\ClientBuilder;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\AuthTrait;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\ProjectTrait;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\ProjectEnvironmentTrait;
+use FreedomtechHosting\FtLagoonPhp\ClientTraits\GroupTrait;
+
 /**
  * Client class for interacting with the Lagoon API
  * 
@@ -30,6 +32,8 @@ class Client {
     use AuthTrait;
     use ProjectTrait;
     use ProjectEnvironmentTrait;
+    use GroupTrait;
+
     /**
      * Constructor for the Lagoon API client
      *

@@ -141,6 +141,90 @@ Trait ProjectEnvironmentTrait {
     }
 
     /**
+     * Gets deployments for a project environment
+     *
+     * @param string $projectName The name of the project
+     * @param string $environmentName The name of the environment
+     * @return array Deployment information or error details
+     * @throws LagoonClientInitializeRequiredToInteractException if client not initialized
+     */
+    public function getProjectEnvironmentDeployments(string $projectName, ?string $environmentName = null) : array
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $query = <<<GQL
+            query q {
+                projectByName(name: "{$projectName}") {
+                    environments {
+                        name
+                        deployments {
+                            id
+                            name
+                            priority
+                            buildStep
+                            status
+                            started
+                            completed
+                        }
+                    }
+                }
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($query);
+
+        /***
+         * Example Response
+         * {
+            "data": {
+                "projectByName": {
+                "environments": [
+                    {
+                    "name": "main",
+                    "deployments": [
+                        {
+                        "id": 5269,
+                        "name": "lagoon-build-u9izs5",
+                        "priority": null,
+                        "buildStep": null,
+                        "status": "new",
+                        "started": null,
+                        "completed": null
+                        }
+                    ]
+                    }
+                ]
+                }
+            }
+            }
+         */
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+
+        $data = $response->getData();
+        $deployments = [];
+
+        if(isset($data['projectByName']['environments'])) {
+            foreach($data['projectByName']['environments'] as $environment) {
+                $envName = $environment['name'];
+                if(!empty($environment['deployments'])) {
+                    $deployments[$envName] = $environment['deployments'];
+                }
+            }
+        }
+
+        if(isset($environmentName) && !empty($environmentName)) {
+            return isset($deployments[$environmentName]) ? [$environmentName => $deployments[$environmentName]] : [];
+        }
+
+        return $deployments;
+    }
+
+    /**
      * Deletes a project environment
      *
      * @param string $projectName The name of the project
