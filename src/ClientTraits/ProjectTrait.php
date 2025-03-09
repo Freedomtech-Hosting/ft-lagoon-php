@@ -56,7 +56,7 @@ Trait ProjectTrait {
         string $branches,
         string $productionEnvironment,
         int $clusterId,
-        ?string $privateKey = null,
+        string $privateKey,
         int $orgId,
         bool $addOrgOwnerToProject)
     {
