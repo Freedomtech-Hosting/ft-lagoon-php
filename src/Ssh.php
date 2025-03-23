@@ -42,6 +42,36 @@ class Ssh extends SpatieSsh {
     }
 
     /**
+     * @return string
+     */
+    public function getCommandForExecute(string $execute, string $serviceName = "cli", string $containerName = "cli"): string
+    {
+        $extraOptions = implode(' ', $this->getExtraOptions());
+        $target = $this->getTargetForSsh();
+
+        $sshCommand = "ssh {$extraOptions} {$target} service={$serviceName} container={$containerName} $execute";
+        return $sshCommand;
+    }
+
+    public function executeSShCommand(string $command, string $serviceName = "cli", string $containerName = "cli"): array
+    {
+        $execute = $this->getCommandForExecute($command, $serviceName, $containerName);
+        
+        $process = $this->run($execute);
+        
+        $output = $process->getOutput();
+        $error = $process->getErrorOutput();
+        
+        return [
+            'command' => $execute,
+            'result' => $process->getExitCode(),
+            'result_text' => $process->getExitCodeText(),
+            'output' => $output,
+            'error' => $error
+        ];
+    }
+
+/**
      * Creates a pre-configured SSH connection for Lagoon
      *
      * This static factory method creates an SSH connection with all the required

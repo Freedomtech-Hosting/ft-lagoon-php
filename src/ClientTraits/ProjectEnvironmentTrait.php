@@ -1,6 +1,7 @@
 <?php namespace FreedomtechHosting\FtLagoonPhp\ClientTraits;
 
 use FreedomtechHosting\FtLagoonPhp\LagoonClientInitializeRequiredToInteractException;
+use FreedomtechHosting\FtLagoonPhp\Ssh;
 
 Trait ProjectEnvironmentTrait {
     /**
@@ -355,6 +356,35 @@ Trait ProjectEnvironmentTrait {
             $variableName,
             $environmentName
         );
+    }
+
+    public function executeCommandOnProjectEnvironment(
+        string $projectName,
+        string $environmentName,
+        string $command,
+        string $serviceName = "cli",
+        string $containerName = "cli"
+    ) : array
+    { 
+        echo "Executing command on project environment: {$projectName} {$environmentName} {$command}\n";
+        $projectEnvironmentUser = $projectName. '-' . $environmentName;
+        
+        $ssh = Ssh::createLagoonConfigured(
+            $projectEnvironmentUser, 
+            $this->lagoonSshServer, 
+            $this->lagoonSshPort, 
+            $this->sshPrivateKeyFile
+        );
+        
+        $result = $ssh->executeSShCommand($command, $serviceName, $containerName);
+        
+        if($this->getDebug()) {
+            echo "Command Result:\n----\n";
+            echo print_r($result);
+            echo "\n----\n";
+        }
+
+        return $result;
     }
 }
 
