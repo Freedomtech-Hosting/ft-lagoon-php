@@ -137,8 +137,6 @@ Trait ProjectEnvironmentTrait {
 
             return ['error' => 'Deployment not found: ' . $deploymentName, 'errorData' => $data];
         }
-
-        return true;
     }
 
     /**
