@@ -5,6 +5,7 @@ use FreedomtechHosting\FtLagoonPhp\ClientTraits\AuthTrait;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\ProjectTrait;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\ProjectEnvironmentTrait;
 use FreedomtechHosting\FtLagoonPhp\ClientTraits\GroupTrait;
+use FreedomtechHosting\FtLagoonPhp\ClientTraits\TaskTrait;
 
 /**
  * Client class for interacting with the Lagoon API
@@ -35,6 +36,7 @@ class Client {
     use ProjectTrait;
     use ProjectEnvironmentTrait;
     use GroupTrait;
+    use TaskTrait;
 
     /**
      * Constructor for the Lagoon API client
