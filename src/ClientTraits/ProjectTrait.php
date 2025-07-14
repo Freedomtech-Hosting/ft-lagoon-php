@@ -460,5 +460,228 @@ Trait ProjectTrait {
             return $data;
         }
     }
-    
+
+    public function addProjectDeployTargetByProjectId(int $projectId, int $deployTargetId, int $weight, 
+        ?string $branches = null, ?string $pullrequests = null) : array
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        if(empty($branches) && empty($pullrequests)) {
+            throw new \Exception("At least one of branches or pullrequests must be provided");
+        }
+
+        $config = "";
+        if(!empty($branches)) {
+            $config .= "branches: \"{$branches}\"\n";
+        }
+
+        if(!empty($pullrequests)) {
+            $config .= "pullrequests: \"{$pullrequests}\"\n";
+        }
+
+        $mutation = <<<GQL
+            mutation {
+                addDeployTargetConfig(input:{
+                    project: {$projectId}
+                    {$config}
+                    deployTarget: {$deployTargetId}
+                    weight: {$weight}
+                }){
+                    id
+                    branches
+                    pullrequests
+                    weight
+                    project{
+                        id
+                        name
+                    }
+                    deployTarget{
+                        id
+                        name
+                        friendlyName
+                        cloudRegion
+                        cloudProvider
+                    }
+                }
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($mutation);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        } else {
+            $data = $response->getData();
+            return $data;
+        }
+    }
+
+    public function getProjectDeployTargetsByProjectId(int $projectId) : array 
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $query = <<<GQL
+            query {
+                deployTargetConfigsByProjectId(project: {$projectId}) {
+                    id
+                    branches
+                    pullrequests
+                    weight
+                    project {
+                        id
+                        name
+                    }
+                    deployTarget {
+                        id
+                        name
+                        friendlyName
+                        cloudRegion
+                        cloudProvider
+                    }
+                }
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($query);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+        else {
+            $data = $response->getData();
+            return $data;
+        }
+    }
+
+    public function getProjectDeployTargetByConfigId(int $deployTargetConfigId) : array 
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $query = <<<GQL
+            query {
+                deployTargetConfigById(id: {$deployTargetConfigId}) {
+                    id
+                    branches
+                    pullrequests
+                    weight
+                    project {
+                        id
+                        name
+                    }
+                    deployTarget {
+                        id
+                        name
+                        friendlyName
+                        cloudRegion
+                        cloudProvider
+                    }
+                }
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($query);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        }
+        else {
+            $data = $response->getData();
+            return $data;
+        }
+    }
+
+    public function updateProjectDeployTargetByConfigId(int $deployTargetConfigId, int $deployTargetId, ?int $weight = null, 
+        ?string $branches = null, ?string $pullRequest = null) : array
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        if(empty($branches) && empty($pullRequest)) {
+            throw new \Exception("At least one of branches or pullRequest must be provided");
+        }
+
+        $config = "patch: {\n";
+        $config .= "deployTarget: {$deployTargetId}\n";
+
+        if(!empty($branches)) {
+            $config .= "branches: \"{$branches}\"\n";
+        }
+
+        if(!empty($pullRequest)) {
+            $config .= "pullrequests: \"{$pullRequest}\"\n";
+        }
+
+        if(!is_null($weight)) {
+            $config .= "weight: {$weight}\n";
+        }
+
+        $config .= "}\n";
+
+        $mutation = <<<GQL
+            mutation {
+                updateDeployTargetConfig(input:{
+                    id: {$deployTargetConfigId}
+                    {$config}
+                }){
+                    id
+                    weight
+                    branches
+                    pullrequests
+                    deployTargetProjectPattern
+                    deployTarget{
+                        id
+                        name
+                        friendlyName
+                        cloudRegion
+                        cloudProvider
+                    }
+                    project{
+                        name
+                    }
+                }
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($mutation);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        } else {
+            $data = $response->getData();
+            return $data;
+        }
+    }
+
+    public function deleteProjectDeployTargetByConfigId(int $deployTargetConfigId, int $projectId) : array
+    {
+        if(empty($this->lagoonToken) || empty($this->graphqlClient)) {
+            throw new LagoonClientInitializeRequiredToInteractException();
+        }
+
+        $mutation = <<<GQL
+            mutation {
+                deleteDeployTargetConfig(input:{
+                    id: {$deployTargetConfigId}
+                    project: {$projectId}
+                    execute: true
+                })
+            }
+        GQL;
+
+        $response = $this->graphqlClient->query($mutation);
+
+        if($response->hasErrors()) {
+            return ['error' => $response->getErrors()];
+        } else {
+            return ['id' => $deployTargetConfigId, 'project' => $projectId, 'execute' => true];
+        }
+    }
+
 }
