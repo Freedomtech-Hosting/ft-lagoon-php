@@ -364,7 +364,10 @@ Trait ProjectEnvironmentTrait {
         string $containerName = "cli"
     ) : array
     { 
-        echo "Executing command on project environment: {$projectName} {$environmentName} {$command}\n";
+        if($this->getDebug()) {
+		echo "Executing command on project environment: {$projectName} {$environmentName} {$command}\n";
+	}
+
         $projectEnvironmentUser = $projectName. '-' . $environmentName;
         
         $ssh = Ssh::createLagoonConfigured(
