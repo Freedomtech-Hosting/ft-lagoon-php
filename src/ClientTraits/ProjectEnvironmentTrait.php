@@ -381,7 +381,7 @@ Trait ProjectEnvironmentTrait {
         
         if($this->getDebug()) {
             echo "Command Result:\n----\n";
-            echo print_r($result);
+            print_r($result);
             echo "\n----\n";
         }
 
